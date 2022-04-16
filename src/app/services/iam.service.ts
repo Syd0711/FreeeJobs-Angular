@@ -12,7 +12,7 @@ import { IAPIResponse } from '../entities/apiresponse';
 })
 export class IAMService {
 
-  private IAMUrl = 'http://localhost:8082/iam';
+  private IAMUrl = 'https://freeejobs-iamms.herokuapp.com/iam';
 
   constructor(private httpClient: HttpClient,
     private commonService: CommonService) { }
