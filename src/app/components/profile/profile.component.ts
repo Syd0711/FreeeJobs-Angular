@@ -15,6 +15,7 @@ import { SessionStorageService } from 'src/app/services/session-storage.service'
 import { CommonService } from 'src/app/services/common.service';
 import { LogService } from 'src/app/services/log.service';
 import { ErrorMessageEnum } from 'src/app/models/error-message-enum';
+import { AlertService } from "../../services/alert.service";
 
 
 @Component({
@@ -46,15 +47,22 @@ export class ProfileComponent implements OnInit, OnDestroy {
   freelancerAvgRating!: string;
   freelancerReviewCount!: number;
   url!: any;
+  pdfUrl!:any;
   selectedFile!: File;
+  selectedPDFFile!: File;
+  selectedImageName!: string;
+  selectedPDFName!:string;
+  showImage!:string;
+  showPDF!: string;
   alert!: string;
 
   classname: string = ProfileComponent.name;
 
-  contactNumberRegEx = /^[689]\d{7}$/;
+  contactNumberRegEx = /^(?:\+65)?[689][0-9]{7}$/;
 
   @ViewChild('inputFile')
   myInputVariable!: ElementRef;
+  myInputPDF!: ElementRef;
 
   //hard coded
   imagePath = './assets/img/default.png';
@@ -69,7 +77,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
     private ratingService: RatingService,
     private sessionStorageService: SessionStorageService,
     private commonService: CommonService,
-    private loggerService: LogService) {
+    private loggerService: LogService,
+    private alertService: AlertService,) {
     this.router.routeReuseStrategy.shouldReuseRoute = () => false;
   }
   
@@ -102,8 +111,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
     let userId;
 
     //Added by John
-    console.log("LoggedUserId", this.sessionStorageService.getSessionStorage('id'));
-    console.log("viewApplicantId", this.sessionStorageService.getSessionStorage('applicantProfileId'));
+    // console.log("LoggedUserId", this.sessionStorageService.getSessionStorage('id'));
+    // console.log("viewApplicantId", this.sessionStorageService.getSessionStorage('applicantProfileId'));
     
     if ( this.router.url == this.profileUrl[0]){
       userId = this.sessionStorageService.getSessionStorage('applicantProfileId');
@@ -112,8 +121,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
       userId = this.sessionStorageService.getSessionStorage('id');
       this.editable = true;
     }
-    console.log("applicantProfileId",this.sessionStorageService.getSessionStorage('applicantProfileId'));
-    console.log("id",this.sessionStorageService.getSessionStorage('id'));
+    // console.log("applicantProfileId",this.sessionStorageService.getSessionStorage('applicantProfileId'));
+    // console.log("id",this.sessionStorageService.getSessionStorage('id'));
     //End here
     if (userId == null) {
       this.loggerService.error(ErrorMessageEnum.emptyUserId, this.classname);
@@ -140,6 +149,12 @@ export class ProfileComponent implements OnInit, OnDestroy {
       this.commonService.checkUserInfoBeforeDisplay(response, this.classname);
       this.user = response;
       let dateOfBirth = new Date(this.user.dob)  // added by John
+      // TO DO pic/CV get from backend
+      console.log(this.user.profilePicUrl);
+      this.showImage = 'https://freeejobs.s3.ap-southeast-1.amazonaws.com/'+this.sessionStorageService.getSessionStorage('id') + '.jpg';
+      console.log(this.showImage)
+
+      this.showPDF = 'https://freeejobs.s3.ap-southeast-1.amazonaws.com/'+this.sessionStorageService.getSessionStorage('id') + '.pdf';
 
       this.editProfileForm.patchValue({
         'firstName': this.user.firstName,
@@ -158,13 +173,13 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
   getJobHistory(applicantId: number) {
     this.jobApplicationService.getAcceptedApplicationsByApplicantId(applicantId).subscribe(response => {
-      console.log(response);
+      // console.log(response);
 
       let applications: Application[] = response;
       let completedJobs: JobListing[] = [];
       for (let appln of applications) {
         this.jobListingService.getCompletedJobListingById(appln.jobId).subscribe(response => {
-          console.log(response);
+          // console.log(response);
           if (response) {
             response.status = Object.entries(JobListingStatusEnum).find(([key, val]) => key === response.status)?.[1] || '';
             this.commonService.checkJobListingBeforeDisplay(response.title, response.details, response.rate, response.status, response.id, this.classname);
@@ -181,7 +196,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
   getJobListingByOwner(authorId: number) {
     this.jobListingService.getJobListingByUser(authorId).subscribe(response => {
-      console.log(response);
+      // console.log(response);
       this.jobListings = response;
       this.jobListings.forEach((element) => {
         element.status = Object.entries(JobListingStatusEnum).find(([key, val]) => key === element.status)?.[1] || '';
@@ -201,9 +216,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
     let tmpFreelancerRatings: Rating[] = [];
 
     this.ratingService.getRatingsByTargetId(userId).subscribe(response => {
-      console.log(response);
+      // console.log(response);
       allRatings = response;
-      console.log(allRatings.length);
+      // console.log(allRatings.length);
 
       sum = 0;
       count = 0;
@@ -255,19 +270,23 @@ export class ProfileComponent implements OnInit, OnDestroy {
         this.clientRatings = tmpClientRatings;
         this.displayRatings = this.clientRatings;
       });
-      console.log(tmpClientRatings)
+      // console.log(tmpClientRatings)
     });
   }
 
   openListing(listingUrl: String) {
-    console.log("open listing called" + listingUrl);
+    // console.log("open listing called" + listingUrl);
     let source = window.location.origin;
-    console.log("source: " + source)
+    // console.log("source: " + source)
     this.router.navigate([listingUrl]);
   }
 
   editProfileClicked() {
     this.edit = true;
+    this.url = '';
+    this.pdfUrl = '';
+    this.uploadImagePending = false;
+    this.uploadPDFPending = false;
   }
 
   initiateProfile() {
@@ -310,10 +329,14 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.edit = false;
   }
 
+  uploadImagePending: boolean = false;
   //Gets called when the user selects an image
   public onFileChanged(event: any) {
+    // console.log(event)
     //Select File
     this.selectedFile = event.target.files[0];
+    // this.selectedImageName = event.target.files[0].name;
+    this.selectedImageName = this.sessionStorageService.getSessionStorage('id') + '.jpg';
     if (event.target.files && event.target.files[0]) {
       var reader = new FileReader();
 
@@ -322,35 +345,125 @@ export class ProfileComponent implements OnInit, OnDestroy {
       reader.onload = (event: any) => { // called once readAsDataURL is completed
         this.url = event.target.result;
       }
+      this.uploadImagePending = true;
+      // this.showImage = this.url
+    } else {
+      this.uploadImagePending = false;
     }
   }
 
-  removeImage() {
-    document.getElementById('imgPreview')!.removeAttribute('src');
-    this.myInputVariable.nativeElement.value = ''; // clear uploaded image
-    this.url = null;
+  uploadPDFPending: boolean = false;
+  onPDFChanged(event:any) {
+    console.log(event)
+    this.selectedPDFFile = event.target.files[0];
+    this.selectedPDFName = this.sessionStorageService.getSessionStorage('id') + '.pdf';
+    if (event.target.files && event.target.files[0]) {
+      var reader = new FileReader();
+
+      reader.readAsDataURL(event.target.files[0]); // read file as data url
+
+      reader.onload = (event: any) => { // called once readAsDataURL is completed
+        this.pdfUrl = event.target.result;
+      }
+      this.uploadPDFPending = true;
+    } else {
+      this.uploadPDFPending = false;
+    }
   }
 
+  removeImage(e:string) {
+    if(e == 'image') {
+      document.getElementById('imgPreview')!.removeAttribute('src');
+      this.myInputVariable.nativeElement.value = ''; // clear uploaded image
+      this.url = null;
+    } else if(e == 'PDF') {
+      document.getElementById('pdfPreview')!.removeAttribute('src');
+      this.myInputPDF.nativeElement.value = '';
+      this.pdfUrl = null;
+    }
+
+  }
+
+
+  firstName_valid:boolean = true;
+  lastName_valid:boolean = true;
+  nameRegex = /^[a-zA-Z0-9]+$/;
+  email_valid:boolean = true;
+  emailRegEx = /^(([^<>()[\]\\.,;:\s@!\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]{2,}\.)+[a-zA-Z]{2,}))$/;
+  email_regex = new RegExp(this.emailRegEx);
+  contactNumber_valid:boolean = true;
+  contactNumber_regex = new RegExp(this.contactNumberRegEx);
+  
   submit() {
     if (this.edit) {
-      let editObj = {
-        id: this.user.id,
-        firstName: this.editProfileForm.value.firstName,
-        lastName: this.editProfileForm.value.lastName,
-        email: this.editProfileForm.value.emailAddress,
-        contactNo: this.editProfileForm.value.contactNo,
-        professionalTitle: this.editProfileForm.value.professionalTitle,
-        aboutMe: this.editProfileForm.value.aboutMe,
-        aboutMeClient: this.editProfileForm.value.aboutMeClient,
-        skills: this.editProfileForm.value.skills,
+      this.firstName_valid = this.nameRegex.test(this.editProfileForm.value.firstName);
+      this.lastName_valid =  this.nameRegex.test(this.editProfileForm.value.lastName);
+      this.email_valid = this.email_regex.test(this.editProfileForm.value.emailAddress);
+      this.contactNumber_valid = this.contactNumber_regex.test(this.editProfileForm.value.contactNo);
+
+      if(this.firstName_valid && this.lastName_valid && this.email_valid && this.contactNumber_valid){
+        let editObj = {
+          id: this.user.id,
+          firstName: this.editProfileForm.value.firstName,
+          lastName: this.editProfileForm.value.lastName,
+          email: this.editProfileForm.value.emailAddress,
+          contactNo: this.editProfileForm.value.contactNo,
+          professionalTitle: this.editProfileForm.value.professionalTitle,
+          aboutMe: this.editProfileForm.value.aboutMe,
+          aboutMeClient: this.editProfileForm.value.aboutMeClient,
+          skills: this.editProfileForm.value.skills,
+        }
+  
+        this.iamService.updateUser(editObj).subscribe((result) => {
+          window.scroll({ 
+            top: 0, 
+            left: 0, 
+            behavior: 'smooth' 
+          });
+          this.alert = "Profile Updated Successfully!";
+          this.alertService.success('Save Successfully', true);
+        })
+
+        if(this.uploadImagePending) {
+          const uploadImageData = new FormData();
+          uploadImageData.append('imageFile', this.selectedFile, this.selectedImageName)
+          this.iamService.uploadImage(uploadImageData).subscribe((result) => {
+            this.alertService.success('Save Successfully', true);
+          })
+        }
+
+        if(this.uploadPDFPending) {
+          const uploadPDFData = new FormData();
+          uploadPDFData.append('imageFile', this.selectedPDFFile, this.selectedPDFName)
+          this.iamService.uploadImage(uploadPDFData).subscribe((result) => {
+            this.alertService.success('Save Successfully', true);
+          })
+        }
+
+      } else {
+        if(!this.contactNumber_valid) {
+          this.alertService.error('Contact Number is not Valided. 8 Digit Valid SG Phone Number.', true);
+        } else if (!this.email_valid) {
+          this.alertService.error('Email is not valided. xx@xx.com', true);
+        } else if (!this.firstName_valid) {
+          this.alertService.error('First Name cannot be empty.', true);
+        } else if (!this.lastName_valid) {
+          this.alertService.error('last Name cannot be empty.', true);
+        } 
+       
+        window.scroll({ 
+          top: 0, 
+          left: 0, 
+          behavior: 'smooth' 
+        });
       }
 
-      this.iamService.updateUser(editObj).subscribe((result) => {
-        this.alert = "Profile Updated Successfully!"
-      })
 
     }
-    this.refresh();
+    
+    // setTimeout(() => {
+    //   this.refresh();
+    // }, 1000);
   }
 
   refresh() {
