@@ -2,7 +2,10 @@ version: 2.1
 orbs:
   node: circleci/node@4.7.0
   heroku: circleci/heroku@1.2.6
-
+dependencies:
+  pre:
+    - npm install npm@latest -g # Should fix bug in ng test
+    - npm install angular-cli@latest -g
 jobs:
   build_and_test:
     docker:
@@ -10,12 +13,12 @@ jobs:
     steps:
       - checkout
       - node/install-packages:
-          pkg-manager: yarn
+          pkg-manager: npm
       - run:
-          command: yarn test
+          command: ng test
           name: Run tests
       - run:
-          command: yarn build
+          command: ng build
           name: Build app
       - persist_to_workspace:
           root: ~/project
