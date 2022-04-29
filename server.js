@@ -31,7 +31,7 @@ app.use('/rating/*', createProxyMiddleware({
     logLevel: "debug",
     changeOrigin: true
   }));
-app.use('/*', createProxyMiddleware({
+app.use('*', createProxyMiddleware({
     target: "https://freeejobs-angular.herokuapp.com",
     secure: false,
     logLevel: "debug",
