@@ -3,9 +3,9 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const path = require('path');
 const app = express();
 app.use(express.static(__dirname + '/dist/freeejob'));
-app.get('/*', function(req,res) {
+/* app.get('/*', function(req,res) {
 res.sendFile(path.join(__dirname+
-'/dist/freeejob/index.html'));});
+'/dist/freeejob/index.html'));}); */
 
 app.use('/jobListing/*', createProxyMiddleware({
     target: "https://freeejobs-joblisting-ms.herokuapp.com",
