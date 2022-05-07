@@ -1,24 +1,24 @@
 {
     "/jobListing/*": {
-      "target": "https://freeejobs-joblisting-ms.herokuapp.com",
+      "target": "http://localhost:8083",
       "secure": false,
       "logLevel": "debug",
       "changeOrigin": true
     },
     "/jobApplication/*":{
-        "target": "https://freeejobs-application-ms.herokuapp.com",
+        "target": "http://localhost:8084",
         "secure": false,
         "logLevel": "debug",
         "changeOrigin": true
     },
     "/iam/*":{
-        "target": "https://freeejobs-iam-ms.herokuapp.com",
+        "target": "http://localhost:8082",
         "secure": false,
         "logLevel": "debug",
         "changeOrigin": true
     },
     "/rating/*":{
-        "target": "https://freeejobs-rating-ms.herokuapp.com",
+        "target": "http://localhost:8085",
         "secure": false,
         "logLevel": "debug",
         "changeOrigin": true

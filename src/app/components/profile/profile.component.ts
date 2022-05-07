@@ -62,6 +62,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
   @ViewChild('inputFile')
   myInputVariable!: ElementRef;
+  @ViewChild('inputPDFFile')
   myInputPDF!: ElementRef;
 
   //hard coded
@@ -151,10 +152,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
       let dateOfBirth = new Date(this.user.dob)  // added by John
       // TO DO pic/CV get from backend
       console.log(this.user.profilePicUrl);
-      this.showImage = 'https://freeejobs.s3.ap-southeast-1.amazonaws.com/'+this.sessionStorageService.getSessionStorage('id') + '.jpg';
+      this.showImage = 'https://freeejobs-iam.s3.ap-southeast-1.amazonaws.com/'+this.sessionStorageService.getSessionStorage('id') + '.jpg';
       console.log(this.showImage)
 
-      this.showPDF = 'https://freeejobs.s3.ap-southeast-1.amazonaws.com/'+this.sessionStorageService.getSessionStorage('id') + '.pdf';
+      this.showPDF = 'https://freeejobs-iam.s3.ap-southeast-1.amazonaws.com/'+this.sessionStorageService.getSessionStorage('id') + '.pdf';
 
       this.editProfileForm.patchValue({
         'firstName': this.user.firstName,
@@ -353,13 +354,15 @@ export class ProfileComponent implements OnInit, OnDestroy {
   }
 
   uploadPDFPending: boolean = false;
-  onPDFChanged(event:any) {
+  uploadedPDFName: string = '';
+  public onPDFChanged(event:any) {
     console.log(event)
     this.selectedPDFFile = event.target.files[0];
     this.selectedPDFName = this.sessionStorageService.getSessionStorage('id') + '.pdf';
     if (event.target.files && event.target.files[0]) {
+      console.log('got PDF')
       var reader = new FileReader();
-
+      this.uploadedPDFName = event.target.files[0].name;
       reader.readAsDataURL(event.target.files[0]); // read file as data url
 
       reader.onload = (event: any) => { // called once readAsDataURL is completed
@@ -367,17 +370,25 @@ export class ProfileComponent implements OnInit, OnDestroy {
       }
       this.uploadPDFPending = true;
     } else {
+      this.uploadedPDFName = '';
+      this.pdfUrl = ''
+      console.log('no PFD')
       this.uploadPDFPending = false;
     }
   }
 
-  removeImage(e:string) {
-    if(e == 'image') {
+  removeImage(type:string) {
+    if(type == 'image') {
+      console.log(document.getElementById('imgPreview'))
       document.getElementById('imgPreview')!.removeAttribute('src');
+      console.log(this.myInputVariable)
       this.myInputVariable.nativeElement.value = ''; // clear uploaded image
       this.url = null;
-    } else if(e == 'PDF') {
+    } else if(type == 'PDF') {
+      console.log("Delete Pending Upload-PDF")
+      console.log(document.getElementById('pdfPreview'))
       document.getElementById('pdfPreview')!.removeAttribute('src');
+      console.log(this.myInputPDF)
       this.myInputPDF.nativeElement.value = '';
       this.pdfUrl = null;
     }
@@ -428,7 +439,12 @@ export class ProfileComponent implements OnInit, OnDestroy {
           const uploadImageData = new FormData();
           uploadImageData.append('imageFile', this.selectedFile, this.selectedImageName)
           this.iamService.uploadImage(uploadImageData).subscribe((result) => {
-            this.alertService.success('Save Successfully', true);
+            if(result!="Failed"){
+              this.alertService.success('Save Successfully', true);
+            }else{
+              this.alertService.error('Failed To Upload, Please Try Again', true);
+            }
+            
           })
         }
 
@@ -436,7 +452,11 @@ export class ProfileComponent implements OnInit, OnDestroy {
           const uploadPDFData = new FormData();
           uploadPDFData.append('imageFile', this.selectedPDFFile, this.selectedPDFName)
           this.iamService.uploadImage(uploadPDFData).subscribe((result) => {
-            this.alertService.success('Save Successfully', true);
+            if(result!="Failed"){
+              this.alertService.success('Save Successfully', true);
+            }else{
+              this.alertService.error('Failed To Upload, Please Try Again', true);
+            }
           })
         }
 

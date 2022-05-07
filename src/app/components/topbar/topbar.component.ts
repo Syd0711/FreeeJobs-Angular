@@ -8,6 +8,9 @@ import { environment } from "../../../environments/environment";
 import { SessionStorageService } from "../../services/session-storage.service";
 import { AuthService } from "../../services/auth.service";
 import { Observable, of } from 'rxjs';
+import { IAMService } from 'src/app/services/iam.service';
+import { AlertService } from 'src/app/services/alert.service';
+import { createThis } from 'typescript';
 
 @Component({
   selector: 'app-topbar',
@@ -28,11 +31,29 @@ export class TopbarComponent implements OnInit {
     private readonly sessionStorageService: SessionStorageService,
     private readonly authService: AuthService,
     private router: Router,
+    private iamService: IAMService,
+    private alertService: AlertService
   ) { }
 
   ngOnInit(): void {
     this.isLoggedIn$ = this.authService.isLoggedIn;
     this.checkEmailSession();
+    setInterval(() => {
+      this.iamService.getSessionTimeout(this.id).subscribe(e=>{
+        if(new Date(e)<new Date()){
+          this.alertService.error('Session have timeout, you will be automatically logged out in 1 minute. Please Login again.', true);
+          setTimeout(() => {
+            this.onLogout();
+          }, 60000);
+        }else{
+          this.sessionStorageService.setSessionStorage('sessionTimeout', new Date(e));
+          console.log("sessiontimeout:"+sessionStorage.getItem("sessionTimeout"));
+          
+        }
+        
+      });
+    }, 30000);
+    //setInterval(this.checkSessionTimeout, 30000);
     // console.log(this.isLoggedIn$)
   }
 
@@ -43,13 +64,18 @@ export class TopbarComponent implements OnInit {
   }
 
   onLogout(){
-    //this.sessionStorageService.removeEmail('email');
-    this.sessionStorageService.removeSessionStorage('email');
-    // this.sessionStorageService.removeID('id');
-    this.sessionStorageService.removeSessionStorage('id');
-    this.authService.logout();                      // {3}
-    console.log("logout action")
-    this.islogin=false;
+    this.iamService.logout(this.sessionStorageService.getSessionStorage('id')).subscribe(e=>{
+      if(e.status!.statusCode==200){
+        //this.sessionStorageService.removeEmail('email');
+        this.sessionStorageService.removeSessionStorage('email');
+        // this.sessionStorageService.removeID('id');
+        this.sessionStorageService.removeSessionStorage('id');
+        this.authService.logout();                      // {3}
+        console.log("logout action")
+        this.islogin=false;
+      }
+    });
+    
   }
 
   checkEmailSession(){
@@ -73,6 +99,21 @@ export class TopbarComponent implements OnInit {
     this.loginemail = this.sessionStorageService.getSessionStorage('email');
     //this.loginID = this.sessionStorageService.getID('id');
     this.loginID = this.sessionStorageService.getSessionStorage('id');
+  }
+
+  checkSessionTimeout(){
+    console.log("checking session timeout"+this.id);
+    this.iamService.getSessionTimeout(this.id).subscribe(e=>{
+      if(new Date(e)<new Date()){
+        this.alertService.error('Session have timeout, you will be automatically logged out in 1 minute. Please Login again.', true);
+        this.onLogout();
+      }else{
+        this.sessionStorageService.setSessionStorage('sessionTimeout', new Date(e));
+        console.log("sessiontimeout:"+sessionStorage.getItem("sessionTimeout"));
+        
+      }
+      
+    });
   }
 
 }

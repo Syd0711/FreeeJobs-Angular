@@ -75,8 +75,12 @@ export class AuthService {
         this.sessionStorageService.setSessionStorage('id', e.userId);
         this.sessionStorageService.setSessionStorage('jobId', 0);
         setTimeout(() => {
-          this.router.navigate(['/dashboard']);
+          this.router.navigate(['/otp']);
         }, 100);
+        this.IAMService.getSessionTimeout(Number(e.userId)).subscribe(e=>{
+          this.sessionStorageService.setSessionStorage('sessionTimeout', new Date(e));
+          console.log("sessiontimeout:"+sessionStorage.getItem("sessionTimeout"));
+        });
         // this.router.navigateByUrl("")
       } else if(e.loginStatus == 0) {
         this.alertService.error('Login Fail', true);
@@ -85,7 +89,7 @@ export class AuthService {
       } else if(e.loginStatus == 3){
         this.alertService.error('The Account is locked after 3 fail attempts. Please contact admin.', true)
       }
-    })
+    });
   }
 
   // //Login WITHOUT API
@@ -115,6 +119,33 @@ export class AuthService {
     this.sessionStorageService.removeSessionStorage('id');
     this.router.navigate(['login']);
     this.logService.clear();
+    
   }
+
+  validateOTP(otp:string, userId:number){
+      this.IAMService.validateOTP(otp, userId).subscribe(e=>{
+        console.log(e)
+        if (e == "Verified") {
+          setTimeout(() => {
+            this.router.navigate(['/dashboard']);
+          }, 100);
+        } else if(e == "Expired") {
+          this.alertService.error('OTP Expired, Please Requ est For New OTP', true);
+        } else{
+          this.alertService.error('Validation Failed, Please Try again.', true);
+        }
+      });
+    }
+
+    getOTP(userId:number){
+      this.IAMService.getOTP(userId).subscribe(e=>{
+        console.log(e)
+        if (e == "sent") {
+          
+        } else{
+          this.alertService.error('There is an error with request, Please Try again.', true);
+        }
+      });
+    }
 
 }

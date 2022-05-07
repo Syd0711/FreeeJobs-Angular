@@ -80,10 +80,10 @@
                                             <!-- <i class="fa fa-file-image-o"></i> -->
                                         </div>
                                         <ng-container *ngIf="uploadImagePending">
-                                            <img [src]="url" id="imgPreview">
+                                            <img [src]="url" id="imgPreview" alt="Uploading Profile Picture">
                                         </ng-container>
                                         <ng-container *ngIf="!uploadImagePending">
-                                            <img src="{{ showImage }}" id="imgPreview">
+                                            <img src="{{ showImage }}" id="imgPreview" alt="Uploaded Profile Picture">
                                         </ng-container>
                                         
                                         <button type="button" class="close" aria-label="Close" (click)="removeImage('image')"
@@ -94,24 +94,25 @@
                                     </div>
                                 </div>
                                 
-                                <!-- <div class="upload-container">
+                                <div class="upload-container" style="padding-top: 10px;">
                                     <div class="border-container">
                                         <div class="icons fa-4x" *ngIf="!pdfUrl">
                                         </div>
-                                        <ng-container *ngIf="uploadPDFPending">
-                                            <div id="pdfPreview">{{pdfUrl}}</div>
+                                        <div>Upload Resume</div>
+                                        <ng-container *ngIf="uploadPDFPending" >
+                                            <!-- {{pdfUrl}}/1 -->
+                                            <div id="pdfPreview">{{uploadedPDFName}}</div>
                                         </ng-container>
-                                        <ng-container *ngIf="!uploadPDFPending">
-                                            <div id="pdfPreview">{{showPDF}}</div>
+                                        <ng-container *ngIf="!uploadPDFPending" id="pdfPreview">
+                                            {{showPDF}}
                                         </ng-container>
-                                        
                                         <button type="button" class="close" aria-label="Close" (click)="removeImage('PDF')"
                                             *ngIf="pdfUrl">
                                             <span aria-hidden="true">&times;</span>
                                         </button>
-                                        <input type="file" (change)="onPDFChanged($event)" #inputFile>
+                                        <input type="file" (change)="onPDFChanged($event)" #inputPDFFile>
                                     </div>
-                                </div> -->
+                                </div>
                                 
                             </div>
                         </div>
