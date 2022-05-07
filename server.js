@@ -18,7 +18,7 @@ app.use('/jobApplication/*', createProxyMiddleware({
     changeOrigin: true
   }));
 app.use('/iam/*', createProxyMiddleware({
-    target: "https://freeejobs-iam-ms.herokuapp.com",
+    target: "https://freeejobs-iam-testing.herokuapp.com/",
     secure: false,
     logLevel: "debug",
     changeOrigin: true
